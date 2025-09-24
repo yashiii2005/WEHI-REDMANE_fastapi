@@ -1,11 +1,10 @@
 from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
-
+import json
 import psycopg2
+from psycopg2.extras import execute_values
 from psycopg2 import Error
-
-
 from app.schemas.schemas import (
     FileCreate,
     Project,
@@ -24,6 +23,7 @@ from app.schemas.schemas import (
     FileMetadataCreate,
     MetadataUpdate,
 )
+import logging
 
 # Replace with your actual connection details
 DB_NAME = "readmedatabase"
@@ -32,7 +32,11 @@ DB_PASSWORD = "password"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 
+logger = logging.getLogger('uvicorn.error')
+logger.setLevel(logging.DEBUG)
+
 router = APIRouter()
+
 
 
 def get_connection():
@@ -87,6 +91,7 @@ async def add_files(files: List[FileCreate]):
 
 @router.get("/")
 async def root():
+    
     return RedirectResponse(url="/projects")
 
 
@@ -568,3 +573,84 @@ def update_metadata(update: MetadataUpdate):
 
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
+
+@router.post("/ingest/simple_raw_file_test")
+async def simple_raw_file_test():
+    logging.debug("--- Starting simple raw file test endpoint ---")
+
+    # will be provided as an input
+    dataset_id_to_use = 1 
+    json_file_path = "output.json"
+    
+    conn = None
+    try:
+        logging.debug(f"Attempting to read file at: {json_file_path}")
+        with open(json_file_path, 'r') as f:
+            ingestion_data = json.load(f)
+        logging.debug("File read and parsed successfully.")
+
+        raw_files = ingestion_data['data']['files']['raw']
+        logging.debug(f"Found {len(raw_files)} raw files to process.")
+        
+        logging.debug("Connecting to the database...")
+        conn = get_connection()
+        cursor = conn.cursor()
+        logging.debug("Database connection successful.")
+
+        for i, file_detail in enumerate(raw_files):
+            logging.debug(f"Processing file {i+1}: {file_detail['file_name']}")
+            
+            cursor.execute(
+                """
+                INSERT INTO files (dataset_id, path, file_type)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                (dataset_id_to_use, file_detail['directory'], 'raw')
+            )
+            file_id = cursor.fetchone()[0]
+            logging.debug(f"  -> Inserted into 'files' table with new ID: {file_id}")
+
+            metadata_to_insert = [
+                (file_id, 'file_name', file_detail['file_name']),
+                (file_id, 'file_size', str(file_detail['file_size'])),
+                (file_id, 'organization', file_detail['organization']),
+                (file_id, 'patient_id', file_detail['patient_id']),
+                (file_id, 'sample_id', file_detail['sample_id']),
+            ]
+            
+            execute_values(
+                cursor,
+                "INSERT INTO files_metadata (file_id, metadata_key, metadata_value) VALUES %s",
+                metadata_to_insert
+            )
+            logging.debug(f"  -> Inserted {len(metadata_to_insert)} metadata records.")
+
+        logging.debug("All files processed. Committing transaction...")
+        conn.commit()
+        logging.debug("Transaction committed successfully.")
+        return {"status": "success", "message": f"{len(raw_files)} raw files have been inserted for dataset ID {dataset_id_to_use}."}
+
+    except FileNotFoundError:
+        logging.debug(f"ERROR: The file was not found at '{json_file_path}'.")
+        raise HTTPException(status_code=500, detail=f"Error: The file was not found at '{json_file_path}'. Make sure it's in the project root directory.")
+    except KeyError as e:
+        logging.debug(f"ERROR: A key was not found in the JSON file: {e}")
+        raise HTTPException(status_code=500, detail=f"Error: The JSON file is missing an expected key: {e}")
+    except Error as e:
+        logging.debug(f"DATABASE ERROR: {e}")
+        if conn:
+            conn.rollback() 
+        raise HTTPException(status_code=500, detail=f"Database transaction failed: {e}")
+    finally:
+        if conn:
+            conn.close()
+            logging.debug("Database connection closed.")
+
+
+@router.get('/testing')
+async def testing():
+    print("testing api call")
+    logging.debug("testing call")
+
+    return {"message": "success"}
