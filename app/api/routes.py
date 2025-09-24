@@ -574,8 +574,8 @@ def update_metadata(update: MetadataUpdate):
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
-@router.post("/ingest/simple_raw_file_test")
-async def simple_raw_file_test():
+@router.post("/ingest/upload_file_metadata")
+async def upload_file_metadata():
     logging.debug("--- Starting simple raw file test endpoint ---")
 
     # will be provided as an input
