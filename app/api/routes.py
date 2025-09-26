@@ -22,6 +22,11 @@ from app.schemas.schemas import (
     PatientWithSamples,
     FileMetadataCreate,
     MetadataUpdate,
+    DatasetSummary,
+    Totals,
+    ProjectSummary
+
+    
 )
 import logging
 
@@ -353,6 +358,86 @@ async def get_projects():
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
+@router.get("/projects/{project_id}/summary", response_model=ProjectSummary)
+def get_project_summary(project_id: int):
+    """
+    Summarize a project's datasets:
+      - file_count          : DISTINCT files per dataset
+      - patient_count       : DISTINCT patient_id values in files_metadata
+      - sample_count        : DISTINCT sample_id values in files_metadata
+      - total_size_kb       : SUM of file_size (text) cast to numeric (assumed KB)
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+
+        # Project name
+        cur.execute("SELECT name FROM projects WHERE id = %s", (project_id,))
+        row = cur.fetchone()
+        project_name = row[0] if row else None
+
+        # Aggregate per-dataset. Only sum file_size rows that are purely numeric (allowing whitespace).
+        sql = """
+        SELECT
+          d.id   AS dataset_id,
+          d.name AS dataset_name,
+          COUNT(DISTINCT f.id) AS file_count,
+          COUNT(DISTINCT CASE WHEN fm.metadata_key = 'patient_id' THEN fm.metadata_value END) AS patient_count,
+          COUNT(DISTINCT CASE WHEN fm.metadata_key = 'sample_id'  THEN fm.metadata_value END) AS sample_count,
+          COALESCE(
+            SUM(
+              (regexp_replace(fm.metadata_value, '\\s', '', 'g'))::numeric
+            )
+            FILTER (
+              WHERE fm.metadata_key = 'file_size'
+                AND fm.metadata_value ~ '^[[:space:]]*[0-9]+(\\.[0-9]+)?[[:space:]]*$'
+            ),
+            0
+          )::bigint AS total_size_kb
+        FROM datasets d
+        LEFT JOIN files f          ON f.dataset_id = d.id
+        LEFT JOIN files_metadata fm ON fm.file_id   = f.id
+        WHERE d.project_id = %s
+        GROUP BY d.id, d.name
+        ORDER BY d.name;
+        """
+        cur.execute(sql, (project_id,))
+        rows = cur.fetchall()
+
+        datasets = [
+            DatasetSummary(
+                dataset_id=r[0],
+                dataset_name=r[1],
+                file_count=int(r[2]),
+                patient_count=int(r[3]),
+                sample_count=int(r[4]),
+                total_size_kb=int(r[5]),
+            )
+            for r in rows
+        ]
+
+        totals = Totals(
+            file_count=sum(d.file_count for d in datasets),
+            patient_count=sum(d.patient_count for d in datasets),
+            sample_count=sum(d.sample_count for d in datasets),
+            total_size_kb=sum(d.total_size_kb for d in datasets),
+        )
+
+        return ProjectSummary(
+            project_id=project_id,
+            project_name=project_name,
+            totals=totals,
+            datasets=datasets,
+        )
+
+    except Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 @router.get("/datasets/", response_model=List[Dataset])
 async def get_datasets(
