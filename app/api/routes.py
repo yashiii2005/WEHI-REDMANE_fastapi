@@ -580,75 +580,110 @@ async def upload_file_metadata(file: UploadFile = File(...)):
 
     # will be provided as an input
     dataset_id_to_use = 1 
-    contents = await file.read()
-    
-    conn = None
+
     try:
+        contents = await file.read()
         decoded_contents = contents.decode('utf-8')
         ingestion_data = json.loads(decoded_contents)
         logging.debug("File read and parsed successfully.")
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=400, detail="Invalid file format. Please upload a valid JSON file.")
 
-        raw_files = ingestion_data['data']['files']['raw']
-        logging.debug(f"Found {len(raw_files)} raw files to process.")
-        
-        logging.debug("Connecting to the database...")
+    conn = None
+
+    try:
+
+        # if data/files and data/file_size_unit don't exist, then we must have incorrect file
+        files_by_type = ingestion_data.get('data').get('files')
+        file_size_unit = ingestion_data.get('data').get('file_size_unit', 'units')
+
+        summary = {
+            "raw": {"count": 0, "total_size": 0},
+            "processed": {"count": 0, "total_size": 0},
+            "summarised": {"count": 0, "total_size": 0}
+        }
+
         conn = get_connection()
         cursor = conn.cursor()
-        logging.debug("Database connection successful.")
 
-        for i, file_detail in enumerate(raw_files):
-            logging.debug(f"Processing file {i+1}: {file_detail['file_name']}")
-            
-            cursor.execute(
-                """
-                INSERT INTO files (dataset_id, path, file_type)
-                VALUES (%s, %s, %s)
-                RETURNING id
-                """,
-                (dataset_id_to_use, file_detail['directory'], 'raw')
+        for file_type in summary.keys():
+            file_list = files_by_type.get(file_type, [])
+
+            count, total_size = _process_files(
+                cursor=cursor,
+                file_list=file_list,
+                file_type_name=file_type,
+                dataset_id=dataset_id_to_use
             )
-            file_id = cursor.fetchone()[0]
-            logging.debug(f"  -> Inserted into 'files' table with new ID: {file_id}")
 
-            metadata_to_insert = [
-                (file_id, 'file_name', file_detail['file_name']),
-                (file_id, 'file_size', str(file_detail['file_size'])),
-                (file_id, 'organization', file_detail['organization']),
-                (file_id, 'patient_id', file_detail['patient_id']),
-                (file_id, 'sample_id', file_detail['sample_id']),
-            ]
-            
-            execute_values(
-                cursor,
-                "INSERT INTO files_metadata (file_id, metadata_key, metadata_value) VALUES %s",
-                metadata_to_insert
-            )
-            logging.debug(f"  -> Inserted {len(metadata_to_insert)} metadata records.")
-
-        logging.debug("All files processed. Committing transaction...")
+            summary[file_type]["count"] = count
+            summary[file_type]["total_size"] = total_size
+        
         conn.commit()
-        logging.debug("Transaction committed successfully.")
-        return {"status": "success", "message": f"{len(raw_files)} raw files have been inserted for dataset ID {dataset_id_to_use}."}
 
-    except (UnicodeDecodeError, json.JSONDecodeError) as e:
-        raise HTTPException(status_code=400, detail="Invalid file content. Must be a valid UTF-8 encoded JSON file.")
+        
+        return {
+            "status": "success",
+            "message": f"Succesfully ingested files for dataset ID {dataset_id_to_use}",
+            "summary": {
+                "file_size_unit": file_size_unit,
+                "raw_files": summary["raw"],
+                "processed_files": summary["processed"],
+                "summarised_files": summary["summarised"]
+            }
+        }
     except KeyError as e:
-        logging.debug(f"ERROR: A key was not found in the JSON file: {e}")
-        raise HTTPException(status_code=500, detail=f"Error: The JSON file is missing an expected key: {e}")
+        raise HTTPException(status_code=400, detail=f"Error: The uploaded JSON file is missing an expected key: {e}")
     except Error as e:
-        logging.debug(f"DATABASE ERROR: {e}")
         if conn:
-            conn.rollback() 
+            conn.rollback()
         raise HTTPException(status_code=500, detail=f"Database transaction failed: {e}")
     finally:
         if conn:
             conn.close()
-            logging.debug("Database connection closed.")
 
+def _process_files(cursor, file_list: list, file_type_name: str, dataset_id: int) -> tuple[int, int]:
+    '''
+    Helper function for file metadata upload which reads a list of files for a specific type (raw/processed/summarised)
+    and returns the results
+    '''
 
-@router.get('/testing')
-async def testing():
-    print("testing api call")
-    logging.debug("testing call")
+    if not file_list:
+        return (0,0)
+    
+    count = 0 
+    total_size = 0
 
-    return {"message": "success"}
+    for file_detail in file_list:
+        count += 1
+
+        total_size += int(file_detail.get('file_size', 0))
+
+        cursor.execute(
+            """
+            INSERT INTO files (dataset_id, path, file_type)
+            VALUES (%s, %s, %s)
+            RETURNING id
+            """,
+            (dataset_id, file_detail['directory'], file_type_name)
+        )
+
+        file_id = cursor.fetchone()[0]
+
+        organization = file_detail.get('organization', 'Unknown')
+
+        metadata_to_insert = [
+            (file_id, 'file_name', file_detail.get('file_name')),
+            (file_id, 'file_size', str(file_detail.get('file_size', 0))),
+            (file_id, 'organization', organization),
+            (file_id, 'patient_id', file_detail.get('patient_id')),
+            (file_id, 'sample_id', file_detail.get('sample_id')),
+        ]
+
+        execute_values(
+            cursor,
+            "INSERT INTO files_metadata (file_id, metadata_key, metadata_value) VALUES %s",
+            metadata_to_insert
+        )
+
+    return count, total_size
