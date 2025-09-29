@@ -23,7 +23,6 @@ from app.schemas.schemas import (
     FileMetadataCreate,
     MetadataUpdate,
 )
-import logging
 
 # Replace with your actual connection details
 DB_NAME = "readmedatabase"
@@ -31,9 +30,6 @@ DB_USER = "postgres"
 DB_PASSWORD = "password"
 DB_HOST = "localhost"
 DB_PORT = "5432"
-
-logger = logging.getLogger('uvicorn.error')
-logger.setLevel(logging.DEBUG)
 
 router = APIRouter()
 
@@ -576,7 +572,6 @@ def update_metadata(update: MetadataUpdate):
 
 @router.post("/ingest/upload_file_metadata")
 async def upload_file_metadata(file: UploadFile = File(...)):
-    logging.debug("--- Starting simple raw file test endpoint ---")
 
     # will be provided as an input
     dataset_id_to_use = 1 
@@ -585,7 +580,6 @@ async def upload_file_metadata(file: UploadFile = File(...)):
         contents = await file.read()
         decoded_contents = contents.decode('utf-8')
         ingestion_data = json.loads(decoded_contents)
-        logging.debug("File read and parsed successfully.")
     except (UnicodeDecodeError, json.JSONDecodeError) as e:
         raise HTTPException(status_code=400, detail="Invalid file format. Please upload a valid JSON file.")
 
