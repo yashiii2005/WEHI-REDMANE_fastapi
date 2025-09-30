@@ -128,6 +128,5 @@ class FileMetadataItem(BaseModel):
 
 class FileWithMetadata(BaseModel):
     id: int
-    path: str
     file_type: str
     metadata: List[FileMetadataItem]

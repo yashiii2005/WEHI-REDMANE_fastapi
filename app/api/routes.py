@@ -571,6 +571,54 @@ def update_metadata(update: MetadataUpdate):
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
+
+def _process_files(cursor, file_list: list, file_type_name: str, dataset_id: int) -> tuple[int, int]:
+    '''
+    Helper function for file metadata upload which reads a list of files for a specific type (raw/processed/summarised)
+    and returns the results
+    '''
+
+    if not file_list:
+        return (0,0)
+    
+    count = 0 
+    total_size = 0
+
+    for file_detail in file_list:
+        count += 1
+
+        total_size += int(file_detail.get('file_size', 0))
+
+        cursor.execute(
+            """
+            INSERT INTO files (dataset_id, path, file_type)
+            VALUES (%s, %s, %s)
+            RETURNING id
+            """,
+            (dataset_id, file_detail['directory'], file_type_name)
+        )
+
+        file_id = cursor.fetchone()[0]
+
+        organization = file_detail.get('organization', 'Unknown')
+
+        metadata_to_insert = [
+            (file_id, 'file_name', file_detail.get('file_name')),
+            (file_id, 'file_size', str(file_detail.get('file_size', 0))),
+            (file_id, 'organization', organization),
+            (file_id, 'patient_id', file_detail.get('patient_id')),
+            (file_id, 'sample_id', file_detail.get('sample_id')),
+        ]
+
+        execute_values(
+            cursor,
+            "INSERT INTO files_metadata (file_id, metadata_key, metadata_value) VALUES %s",
+            metadata_to_insert
+        )
+
+    return count, total_size
+
+
 @router.post("/ingest/upload_file_metadata")
 async def upload_file_metadata(dataset_id: int = Form(...), file: UploadFile = File(...)):
     '''
@@ -637,52 +685,6 @@ async def upload_file_metadata(dataset_id: int = Form(...), file: UploadFile = F
         if conn:
             conn.close()
 
-def _process_files(cursor, file_list: list, file_type_name: str, dataset_id: int) -> tuple[int, int]:
-    '''
-    Helper function for file metadata upload which reads a list of files for a specific type (raw/processed/summarised)
-    and returns the results
-    '''
-
-    if not file_list:
-        return (0,0)
-    
-    count = 0 
-    total_size = 0
-
-    for file_detail in file_list:
-        count += 1
-
-        total_size += int(file_detail.get('file_size', 0))
-
-        cursor.execute(
-            """
-            INSERT INTO files (dataset_id, path, file_type)
-            VALUES (%s, %s, %s)
-            RETURNING id
-            """,
-            (dataset_id, file_detail['directory'], file_type_name)
-        )
-
-        file_id = cursor.fetchone()[0]
-
-        organization = file_detail.get('organization', 'Unknown')
-
-        metadata_to_insert = [
-            (file_id, 'file_name', file_detail.get('file_name')),
-            (file_id, 'file_size', str(file_detail.get('file_size', 0))),
-            (file_id, 'organization', organization),
-            (file_id, 'patient_id', file_detail.get('patient_id')),
-            (file_id, 'sample_id', file_detail.get('sample_id')),
-        ]
-
-        execute_values(
-            cursor,
-            "INSERT INTO files_metadata (file_id, metadata_key, metadata_value) VALUES %s",
-            metadata_to_insert
-        )
-
-    return count, total_size
-
 
 @router.get("/dataset_files_metadata/{dataset_id}", response_model=List[FileWithMetadata])
 async def get_files_with_metadata(dataset_id: int):
@@ -695,7 +697,7 @@ async def get_files_with_metadata(dataset_id: int):
 
         # Query files and the sample relationship from files_metadata
         query = """
-            SELECT file_id, path, file_type, metadata_key, metadata_value 
+            SELECT file_id, file_type, metadata_key, metadata_value 
             FROM files INNER JOIN files_metadata ON files.id = files_metadata.file_id
             WHERE files.dataset_id = %s
         """
@@ -704,11 +706,10 @@ async def get_files_with_metadata(dataset_id: int):
 
         files_map = {}
 
-        for (file_id, path, file_type, metadata_key, metadata_value) in metadata:
+        for (file_id, file_type, metadata_key, metadata_value) in metadata:
             if file_id not in files_map:
                 files_map[file_id] = {
                     "id": file_id,
-                    "path": path,
                     "file_type": file_type,
                     "metadata": []
                 }
