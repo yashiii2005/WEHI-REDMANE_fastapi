@@ -22,6 +22,7 @@ from app.schemas.schemas import (
     PatientWithSamples,
     FileMetadataCreate,
     MetadataUpdate,
+    FileWithMetadata
 )
 
 # Replace with your actual connection details
@@ -572,6 +573,9 @@ def update_metadata(update: MetadataUpdate):
 
 @router.post("/ingest/upload_file_metadata")
 async def upload_file_metadata(dataset_id: int = Form(...), file: UploadFile = File(...)):
+    '''
+    Read from json file containing metadata information and upload into database. Returns a summary of upload information
+    '''
 
     try:
         contents = await file.read()
@@ -678,3 +682,45 @@ def _process_files(cursor, file_list: list, file_type_name: str, dataset_id: int
         )
 
     return count, total_size
+
+
+@router.get("/dataset_files_metadata/{dataset_id}", response_model=List[FileWithMetadata])
+async def get_files_with_metadata(dataset_id: int):
+    """
+    Fetch files within a dataset, along with the metadata for each file
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Query files and the sample relationship from files_metadata
+        query = """
+            SELECT file_id, path, file_type, metadata_key, metadata_value 
+            FROM files INNER JOIN files_metadata ON files.id = files_metadata.file_id
+            WHERE files.dataset_id = %s
+        """
+        cursor.execute(query, (dataset_id,))
+        metadata = cursor.fetchall()
+
+        files_map = {}
+
+        for (file_id, path, file_type, metadata_key, metadata_value) in metadata:
+            if file_id not in files_map:
+                files_map[file_id] = {
+                    "id": file_id,
+                    "path": path,
+                    "file_type": file_type,
+                    "metadata": []
+                }
+
+            if metadata_key is not None:
+                files_map[file_id]["metadata"].append(
+                    {"metadata_key": metadata_key, "metadata_value": metadata_value}
+                )
+
+        conn.close()
+
+        return list(files_map.values())
+
+    except Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
