@@ -144,3 +144,12 @@ class ProjectSummary(BaseModel):
     project_name: Optional[str] = None
     totals: Totals
     datasets: List[DatasetSummary]
+
+class FileMetadataItem(BaseModel):
+    metadata_key: str
+    metadata_value: str
+
+class FileWithMetadata(BaseModel):
+    id: int
+    file_type: str
+    metadata: List[FileMetadataItem]

@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, File, UploadFile, Form
 from fastapi.responses import RedirectResponse
 import json
 import psycopg2
@@ -25,10 +25,8 @@ from app.schemas.schemas import (
     DatasetSummary,
     Totals,
     ProjectSummary
-
-    
+    FileWithMetadata
 )
-import logging
 
 # Replace with your actual connection details
 DB_NAME = "readmedatabase"
@@ -36,9 +34,6 @@ DB_USER = "postgres"
 DB_PASSWORD = "password"
 DB_HOST = "localhost"
 DB_PORT = "5432"
-
-logger = logging.getLogger('uvicorn.error')
-logger.setLevel(logging.DEBUG)
 
 router = APIRouter()
 
@@ -659,83 +654,157 @@ def update_metadata(update: MetadataUpdate):
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
-@router.post("/ingest/simple_raw_file_test")
-async def simple_raw_file_test():
-    logging.debug("--- Starting simple raw file test endpoint ---")
 
-    # will be provided as an input
-    dataset_id_to_use = 1 
-    json_file_path = "output.json"
+def _process_files(cursor, file_list: list, file_type_name: str, dataset_id: int) -> tuple[int, int]:
+    '''
+    Helper function for file metadata upload which reads a list of files for a specific type (raw/processed/summarised)
+    and returns the results
+    '''
+
+    if not file_list:
+        return (0,0)
     
-    conn = None
-    try:
-        logging.debug(f"Attempting to read file at: {json_file_path}")
-        with open(json_file_path, 'r') as f:
-            ingestion_data = json.load(f)
-        logging.debug("File read and parsed successfully.")
+    count = 0 
+    total_size = 0
 
-        raw_files = ingestion_data['data']['files']['raw']
-        logging.debug(f"Found {len(raw_files)} raw files to process.")
-        
-        logging.debug("Connecting to the database...")
+    for file_detail in file_list:
+        count += 1
+
+        total_size += int(file_detail.get('file_size', 0))
+
+        cursor.execute(
+            """
+            INSERT INTO files (dataset_id, path, file_type)
+            VALUES (%s, %s, %s)
+            RETURNING id
+            """,
+            (dataset_id, file_detail['directory'], file_type_name)
+        )
+
+        file_id = cursor.fetchone()[0]
+
+        organization = file_detail.get('organization', 'Unknown')
+
+        metadata_to_insert = [
+            (file_id, 'file_name', file_detail.get('file_name')),
+            (file_id, 'file_size', str(file_detail.get('file_size', 0))),
+            (file_id, 'organization', organization),
+            (file_id, 'patient_id', file_detail.get('patient_id')),
+            (file_id, 'sample_id', file_detail.get('sample_id')),
+        ]
+
+        execute_values(
+            cursor,
+            "INSERT INTO files_metadata (file_id, metadata_key, metadata_value) VALUES %s",
+            metadata_to_insert
+        )
+
+    return count, total_size
+
+
+@router.post("/ingest/upload_file_metadata")
+async def upload_file_metadata(dataset_id: int = Form(...), file: UploadFile = File(...)):
+    '''
+    Read from json file containing metadata information and upload into database. Returns a summary of upload information
+    '''
+
+    try:
+        contents = await file.read()
+        decoded_contents = contents.decode('utf-8')
+        ingestion_data = json.loads(decoded_contents)
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=400, detail="Invalid file format. Please upload a valid JSON file.")
+
+    conn = None
+
+    try:
+
+        # if data/files and data/file_size_unit don't exist, then we must have incorrect file
+        files_by_type = ingestion_data.get('data').get('files')
+        file_size_unit = ingestion_data.get('data').get('file_size_unit', 'units')
+
+        summary = {
+            "raw": {"count": 0, "total_size": 0},
+            "processed": {"count": 0, "total_size": 0},
+            "summarised": {"count": 0, "total_size": 0}
+        }
+
         conn = get_connection()
         cursor = conn.cursor()
-        logging.debug("Database connection successful.")
 
-        for i, file_detail in enumerate(raw_files):
-            logging.debug(f"Processing file {i+1}: {file_detail['file_name']}")
-            
-            cursor.execute(
-                """
-                INSERT INTO files (dataset_id, path, file_type)
-                VALUES (%s, %s, %s)
-                RETURNING id
-                """,
-                (dataset_id_to_use, file_detail['directory'], 'raw')
+        for file_type in summary.keys():
+            file_list = files_by_type.get(file_type, [])
+
+            count, total_size = _process_files(
+                cursor=cursor,
+                file_list=file_list,
+                file_type_name=file_type,
+                dataset_id=dataset_id
             )
-            file_id = cursor.fetchone()[0]
-            logging.debug(f"  -> Inserted into 'files' table with new ID: {file_id}")
 
-            metadata_to_insert = [
-                (file_id, 'file_name', file_detail['file_name']),
-                (file_id, 'file_size', str(file_detail['file_size'])),
-                (file_id, 'organization', file_detail['organization']),
-                (file_id, 'patient_id', file_detail['patient_id']),
-                (file_id, 'sample_id', file_detail['sample_id']),
-            ]
-            
-            execute_values(
-                cursor,
-                "INSERT INTO files_metadata (file_id, metadata_key, metadata_value) VALUES %s",
-                metadata_to_insert
-            )
-            logging.debug(f"  -> Inserted {len(metadata_to_insert)} metadata records.")
-
-        logging.debug("All files processed. Committing transaction...")
+            summary[file_type]["count"] = count
+            summary[file_type]["total_size"] = total_size
+        
         conn.commit()
-        logging.debug("Transaction committed successfully.")
-        return {"status": "success", "message": f"{len(raw_files)} raw files have been inserted for dataset ID {dataset_id_to_use}."}
 
-    except FileNotFoundError:
-        logging.debug(f"ERROR: The file was not found at '{json_file_path}'.")
-        raise HTTPException(status_code=500, detail=f"Error: The file was not found at '{json_file_path}'. Make sure it's in the project root directory.")
+        
+        return {
+            "status": "success",
+            "message": f"Succesfully ingested files for dataset ID {dataset_id}",
+            "summary": {
+                "file_size_unit": file_size_unit,
+                "raw_files": summary["raw"],
+                "processed_files": summary["processed"],
+                "summarised_files": summary["summarised"]
+            }
+        }
     except KeyError as e:
-        logging.debug(f"ERROR: A key was not found in the JSON file: {e}")
-        raise HTTPException(status_code=500, detail=f"Error: The JSON file is missing an expected key: {e}")
+        raise HTTPException(status_code=400, detail=f"Error: The uploaded JSON file is missing an expected key: {e}")
     except Error as e:
-        logging.debug(f"DATABASE ERROR: {e}")
         if conn:
-            conn.rollback() 
+            conn.rollback()
         raise HTTPException(status_code=500, detail=f"Database transaction failed: {e}")
     finally:
         if conn:
             conn.close()
-            logging.debug("Database connection closed.")
 
 
-@router.get('/testing')
-async def testing():
-    print("testing api call")
-    logging.debug("testing call")
+@router.get("/dataset_files_metadata/{dataset_id}", response_model=List[FileWithMetadata])
+async def get_files_with_metadata(dataset_id: int):
+    """
+    Fetch files within a dataset, along with the metadata for each file
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
 
-    return {"message": "success"}
+        # Query files and the sample relationship from files_metadata
+        query = """
+            SELECT file_id, file_type, metadata_key, metadata_value 
+            FROM files INNER JOIN files_metadata ON files.id = files_metadata.file_id
+            WHERE files.dataset_id = %s
+        """
+        cursor.execute(query, (dataset_id,))
+        metadata = cursor.fetchall()
+
+        files_map = {}
+
+        for (file_id, file_type, metadata_key, metadata_value) in metadata:
+            if file_id not in files_map:
+                files_map[file_id] = {
+                    "id": file_id,
+                    "file_type": file_type,
+                    "metadata": []
+                }
+
+            if metadata_key is not None:
+                files_map[file_id]["metadata"].append(
+                    {"metadata_key": metadata_key, "metadata_value": metadata_value}
+                )
+
+        conn.close()
+
+        return list(files_map.values())
+
+    except Error as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
