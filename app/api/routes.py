@@ -441,12 +441,17 @@ async def get_datasets(
 ):
     """
     Fetch datasets, optionally filtered by project_id and/or dataset_id.
+    Returns id, project_id, name, abstract, created_at, and site.
     """
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        query = "SELECT id, project_id, name FROM datasets WHERE 1=1"
+        query = """
+            SELECT id, project_id, name, abstract, created_at, site
+            FROM datasets
+            WHERE 1=1
+        """
         params = []
 
         if project_id is not None:
@@ -461,7 +466,12 @@ async def get_datasets(
         rows = cursor.fetchall()
         conn.close()
 
-        return [Dataset(id=row[0], project_id=row[1], name=row[2]) for row in rows]
+        return [Dataset(id=row[0], 
+                        project_id=row[1], 
+                        name=row[2],
+                        abstract=row[3],
+                        created_at=row[4],
+                        site=row[5]) for row in rows]
 
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")

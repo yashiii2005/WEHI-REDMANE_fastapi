@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime
 from pydantic import BaseModel, validator
 
 # =====================
@@ -14,10 +15,12 @@ class Project(BaseModel):
 # Dataset Schemas
 # =====================
 class Dataset(BaseModel):
-    id: int
-    project_id: int
+    id: Optional[int] = None  
+    project_id: Optional[int] = None  
     name: str
-
+    abstract: str
+    site: str  
+    created_at: Optional[datetime] = None 
 
 class DatasetMetadata(BaseModel):
     id: int
