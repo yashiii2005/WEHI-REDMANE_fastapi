@@ -51,6 +51,71 @@ def get_connection():
         port=DB_PORT
     )
 
+@router.post("/datasets/")
+async def create_dataset(
+    project_id: int = Form(...),
+    name: str = Form(...),
+    abstract: str = Form(...),
+    site: str = Form(...),
+    location: Optional[str] = Form(None),
+    raw_files: Optional[str] = Form(None),
+    processed_files: Optional[str] = Form(None),
+    summary_files: Optional[str] = Form(None),
+    readme_files: Optional[str] = Form(None)
+):
+    """
+    Create a new dataset entry and insert optional metadata into datasets_metadata.
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Insert dataset
+        cursor.execute(
+            """
+            INSERT INTO datasets (project_id, name, abstract, site, created_at)
+            VALUES (%s, %s, %s, %s, NOW())
+            RETURNING id
+            """,
+            (project_id, name, abstract, site)
+        )
+        dataset_id = cursor.fetchone()[0]
+
+        # Insert optional metadata only if present
+        metadata_entries = []
+        if raw_files:
+            metadata_entries.append(('raw_files', raw_files))
+        if processed_files:
+            metadata_entries.append(('processed_files', processed_files))
+        if summary_files:
+            metadata_entries.append(('summary_files', summary_files))
+        if readme_files:
+            metadata_entries.append(('readme_files', readme_files))
+        if location:
+            metadata_entries.append(('location', location))
+
+        for key, value in metadata_entries:
+            cursor.execute(
+                """
+                INSERT INTO datasets_metadata (dataset_id, key, value)
+                VALUES (%s, %s, %s)
+                """,
+                (dataset_id, key, value)
+            )
+
+        conn.commit()
+
+        return {
+            "status": "success",
+            "dataset_id": dataset_id,
+            "message": f"Dataset '{name}' created successfully"
+        }
+
+    except Error as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
 @router.post("/add_files/")
 async def add_files(files: List[FileCreate]):
@@ -441,12 +506,17 @@ async def get_datasets(
 ):
     """
     Fetch datasets, optionally filtered by project_id and/or dataset_id.
+    Returns id, project_id, name, abstract, created_at, and site.
     """
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        query = "SELECT id, project_id, name FROM datasets WHERE 1=1"
+        query = """
+            SELECT id, project_id, name, abstract, created_at, site
+            FROM datasets
+            WHERE 1=1
+        """
         params = []
 
         if project_id is not None:
@@ -461,14 +531,19 @@ async def get_datasets(
         rows = cursor.fetchall()
         conn.close()
 
-        return [Dataset(id=row[0], project_id=row[1], name=row[2]) for row in rows]
+        return [Dataset(id=row[0], 
+                        project_id=row[1], 
+                        name=row[2],
+                        abstract=row[3],
+                        created_at=row[4],
+                        site=row[5]) for row in rows]
 
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
 
-@router.get("/datasets_with_metadata/{dataset_id}", response_model=DatasetWithMetadata)
-async def get_dataset_with_metadata(dataset_id: int, project_id: int):
+@router.get("/datasets_with_metadata/{dataset_id}")
+async def get_dataset_with_metadata(dataset_id: int):
     """
     Fetch dataset details (and its metadata) for the given dataset_id + project_id.
     """
@@ -479,42 +554,38 @@ async def get_dataset_with_metadata(dataset_id: int, project_id: int):
         # Fetch dataset
         cursor.execute(
             """
-            SELECT id, project_id, name
+            SELECT id, project_id, name, abstract, site, created_at
             FROM datasets
-            WHERE id = %s AND project_id = %s
-            """,
-            (dataset_id, project_id)
-        )
+            WHERE id = %s
+        """, (dataset_id,))
         dataset_row = cursor.fetchone()
+
         if not dataset_row:
             raise HTTPException(status_code=404, detail="Dataset not found")
-
-        # Fetch dataset metadata
-        cursor.execute(
-            """
-            SELECT id, dataset_id, key, value
-            FROM datasets_metadata
-            WHERE dataset_id = %s
-            """,
-            (dataset_id,)
-        )
-        metadata_rows = cursor.fetchall()
-        conn.close()
 
         dataset = {
             "id": dataset_row[0],
             "project_id": dataset_row[1],
             "name": dataset_row[2],
-            "metadata": [
-                {"id": row[0], "dataset_id": row[1], "key": row[2], "value": row[3]}
-                for row in metadata_rows
-            ],
+            "abstract": dataset_row[3],
+            "site": dataset_row[4],
+            "created_at": dataset_row[5]
         }
-        return dataset
+
+        cursor.execute("""
+            SELECT key, value
+            FROM datasets_metadata
+            WHERE dataset_id = %s
+        """, (dataset_id,))
+        metadata_rows = cursor.fetchall()
+        metadata = [{"key": row[0], "value": row[1]} for row in metadata_rows]
+
+        conn.close()
+
+        return {**dataset, "metadata": metadata}
 
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
-
 
 @router.get("/files_with_metadata/{dataset_id}", response_model=List[FileResponse])
 async def get_files_with_metadata(dataset_id: int):
