@@ -501,20 +501,23 @@ def get_project_summary(project_id: int):
 
 @router.get("/datasets/", response_model=List[Dataset])
 async def get_datasets(
-        project_id: Optional[int] = Query(None, description="Filter by project ID"),
-        dataset_id: Optional[int] = Query(None, description="Filter by dataset ID")
+    project_id: Optional[int] = Query(None, description="Filter by project ID"),
+    dataset_id: Optional[int] = Query(None, description="Filter by dataset ID")
 ):
     """
     Fetch datasets, optionally filtered by project_id and/or dataset_id.
-    Returns id, project_id, name, abstract, created_at, and site.
+    Includes rank_in_project computed per project.
     """
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
         query = """
-            SELECT id, project_id, name, abstract, created_at, site
-            FROM datasets
+            SELECT * FROM (
+                SELECT id, project_id, name, abstract, created_at, site,
+                       ROW_NUMBER() OVER (PARTITION BY project_id ORDER BY id ASC) AS rank_in_project
+                FROM datasets
+            ) ranked
             WHERE 1=1
         """
         params = []
@@ -527,62 +530,70 @@ async def get_datasets(
             query += " AND id = %s"
             params.append(dataset_id)
 
-        query += "ORDER BY project_id ASC, id ASC;"
+        query += " ORDER BY project_id ASC, id ASC;"
+
         cursor.execute(query, params)
         rows = cursor.fetchall()
         conn.close()
 
-        return [Dataset(id=row[0], 
-                        project_id=row[1], 
-                        name=row[2],
-                        abstract=row[3],
-                        created_at=row[4],
-                        site=row[5]) for row in rows]
+        return [
+            Dataset(
+                id=row[0],
+                project_id=row[1],
+                name=row[2],
+                abstract=row[3],
+                created_at=row[4],
+                site=row[5],
+                rank_in_project=row[6]
+            )
+            for row in rows
+        ]
 
     except Error as e:
         raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
-
 @router.get("/datasets_with_metadata/{dataset_id}")
 async def get_dataset_with_metadata(dataset_id: int):
     """
-    Fetch dataset details (and its metadata) for the given dataset_id + project_id.
+    Fetch dataset details (and its metadata) for the given dataset_id.
+    Includes rank_in_project computed per project.
     """
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        # Fetch dataset
-        cursor.execute(
-            """
-            SELECT id, project_id, name, abstract, site, created_at
-            FROM datasets
-            WHERE id = %s
-        """, (dataset_id,))
-        dataset_row = cursor.fetchone()
+        query = """
+            SELECT * FROM (
+                SELECT id, project_id, name, abstract, created_at, site,
+                       ROW_NUMBER() OVER (PARTITION BY project_id ORDER BY id ASC) AS rank_in_project
+                FROM datasets
+            ) ranked
+            WHERE id = %s;
+        """
+        cursor.execute(query, (dataset_id,))
+        row = cursor.fetchone()
 
-        if not dataset_row:
-            raise HTTPException(status_code=404, detail="Dataset not found")
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Dataset not found for id {dataset_id}")
 
         dataset = {
-            "id": dataset_row[0],
-            "project_id": dataset_row[1],
-            "name": dataset_row[2],
-            "abstract": dataset_row[3],
-            "site": dataset_row[4],
-            "created_at": dataset_row[5]
+            "id": row[0],
+            "project_id": row[1],
+            "name": row[2],
+            "abstract": row[3],
+            "created_at": row[4],
+            "site": row[5],
+            "rank_in_project": row[6],
         }
 
-        cursor.execute("""
-            SELECT key, value
-            FROM datasets_metadata
-            WHERE dataset_id = %s
-        """, (dataset_id,))
+        cursor.execute(
+            "SELECT key, value FROM datasets_metadata WHERE dataset_id = %s;",
+            (dataset_id,),
+        )
         metadata_rows = cursor.fetchall()
-        metadata = [{"key": row[0], "value": row[1]} for row in metadata_rows]
+        metadata = [{"key": m[0], "value": m[1]} for m in metadata_rows]
 
         conn.close()
-
         return {**dataset, "metadata": metadata}
 
     except Error as e:

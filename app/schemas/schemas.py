@@ -21,6 +21,7 @@ class Dataset(BaseModel):
     abstract: str
     site: str  
     created_at: Optional[datetime] = None 
+    rank_in_project: Optional[int] = None
 
 class DatasetMetadata(BaseModel):
     id: int
