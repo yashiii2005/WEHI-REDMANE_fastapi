@@ -1,0 +1,915 @@
+{
+
+    "data": {
+
+        "location": "files/",
+
+        "file_size_unit": "KB",
+
+        "files": {
+
+            "raw": [
+
+                {
+
+                    "file_name": "LC_Sample1.fastq",
+
+                    "file_size": 2389,
+
+                    "patient_id": "ICGC_0001",
+
+                    "sample_id": "LC_Sample1",
+
+                    "directory": "./LC_Sample1.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample10.fastq",
+
+                    "file_size": 2389,
+
+                    "patient_id": "ICGC_0010",
+
+                    "sample_id": "LC_Sample10",
+
+                    "directory": "./LC_Sample10.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample11.fastq",
+
+                    "file_size": 2662,
+
+                    "patient_id": "ICGC_0011",
+
+                    "sample_id": "LC_Sample11",
+
+                    "directory": "./LC_Sample11.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample12.fastq",
+
+                    "file_size": 2627,
+
+                    "patient_id": "ICGC_0012",
+
+                    "sample_id": "LC_Sample12",
+
+                    "directory": "./LC_Sample12.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample2.fastq",
+
+                    "file_size": 2627,
+
+                    "patient_id": "ICGC_0002",
+
+                    "sample_id": "LC_Sample2",
+
+                    "directory": "./LC_Sample2.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample3.fastq",
+
+                    "file_size": 2662,
+
+                    "patient_id": "ICGC_0003",
+
+                    "sample_id": "LC_Sample3",
+
+                    "directory": "./LC_Sample3.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample4.fastq",
+
+                    "file_size": 2389,
+
+                    "patient_id": "ICGC_0004",
+
+                    "sample_id": "LC_Sample4",
+
+                    "directory": "./LC_Sample4.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample5.fastq",
+
+                    "file_size": 2627,
+
+                    "patient_id": "ICGC_0005",
+
+                    "sample_id": "LC_Sample5",
+
+                    "directory": "./LC_Sample5.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample6.fastq",
+
+                    "file_size": 2662,
+
+                    "patient_id": "ICGC_0006",
+
+                    "sample_id": "LC_Sample6",
+
+                    "directory": "./LC_Sample6.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample7.fastq",
+
+                    "file_size": 2389,
+
+                    "patient_id": "ICGC_0007",
+
+                    "sample_id": "LC_Sample7",
+
+                    "directory": "./LC_Sample7.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample8.fastq",
+
+                    "file_size": 2627,
+
+                    "patient_id": "ICGC_0008",
+
+                    "sample_id": "LC_Sample8",
+
+                    "directory": "./LC_Sample8.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "LC_Sample9.fastq",
+
+                    "file_size": 2662,
+
+                    "patient_id": "ICGC_0009",
+
+                    "sample_id": "LC_Sample9",
+
+                    "directory": "./LC_Sample9.fastq",
+
+                    "organization": "National Academy of Taiwan"
+
+                }
+
+            ],
+
+            "processed": [
+
+                {
+
+                    "file_name": "testing_pro.cram",
+
+                    "file_size": 313,
+
+                    "patient_id": "test_patient",
+
+                    "sample_id": "testing_pro",
+
+                    "directory": "./testing_pro.cram",
+
+                    "organization": "National Academy of Taiwan"
+
+                }
+
+            ],
+
+            "summarised": [
+
+                {
+
+                    "file_name": "counts_dataset1.csv",
+
+                    "file_size": 50,
+
+                    "patient_id": [
+
+                        "ICGC_0062",
+
+                        "ICGC_0100",
+
+                        "ICGC_0086",
+
+                        "ICGC_0095",
+
+                        "ICGC_0047",
+
+                        "ICGC_0068",
+
+                        "ICGC_0041",
+
+                        "ICGC_0029",
+
+                        "ICGC_0071",
+
+                        "ICGC_0076",
+
+                        "ICGC_0090",
+
+                        "ICGC_0070",
+
+                        "ICGC_0061",
+
+                        "ICGC_0018",
+
+                        "ICGC_0025",
+
+                        "ICGC_0075",
+
+                        "ICGC_0027",
+
+                        "ICGC_0058",
+
+                        "ICGC_0069",
+
+                        "ICGC_0082",
+
+                        "ICGC_0096",
+
+                        "ICGC_0053",
+
+                        "ICGC_0017",
+
+                        "ICGC_0057",
+
+                        "ICGC_0010",
+
+                        "ICGC_0054",
+
+                        "ICGC_0050",
+
+                        "ICGC_0033",
+
+                        "ICGC_0098",
+
+                        "ICGC_0014",
+
+                        "ICGC_0093",
+
+                        "ICGC_0079",
+
+                        "ICGC_0043",
+
+                        "ICGC_0065",
+
+                        "ICGC_0001",
+
+                        "ICGC_0046",
+
+                        "ICGC_0019",
+
+                        "ICGC_0072",
+
+                        "ICGC_0091",
+
+                        "ICGC_0006",
+
+                        "ICGC_0067",
+
+                        "ICGC_0020",
+
+                        "ICGC_0021",
+
+                        "ICGC_0064",
+
+                        "ICGC_0030",
+
+                        "ICGC_0051",
+
+                        "ICGC_0044",
+
+                        "ICGC_0012",
+
+                        "ICGC_0037",
+
+                        "ICGC_0056",
+
+                        "ICGC_0031",
+
+                        "ICGC_0092",
+
+                        "ICGC_0042",
+
+                        "ICGC_0011",
+
+                        "ICGC_0059",
+
+                        "ICGC_0073",
+
+                        "ICGC_0084",
+
+                        "ICGC_0045",
+
+                        "ICGC_0060"
+
+                    ],
+
+                    "sample_id": [
+
+                        "LC_Sample382",
+
+                        "LC_Sample401",
+
+                        "LC_Sample224",
+
+                        "LC_Sample19",
+
+                        "LC_Sample114",
+
+                        "LC_Sample321",
+
+                        "LC_Sample372",
+
+                        "LC_Sample111",
+
+                        "LC_Sample106",
+
+                        "LC_Sample103",
+
+                        "LC_Sample195",
+
+                        "LC_Sample302",
+
+                        "LC_Sample182",
+
+                        "LC_Sample187",
+
+                        "LC_Sample162",
+
+                        "LC_Sample433",
+
+                        "LC_Sample206",
+
+                        "LC_Sample45",
+
+                        "LC_Sample234",
+
+                        "LC_Sample354",
+
+                        "LC_Sample395",
+
+                        "LC_Sample305",
+
+                        "LC_Sample165",
+
+                        "LC_Sample140",
+
+                        "LC_Sample143",
+
+                        "LC_Sample498",
+
+                        "LC_Sample62",
+
+                        "LC_Sample356",
+
+                        "LC_Sample216",
+
+                        "LC_Sample359",
+
+                        "LC_Sample358",
+
+                        "LC_Sample357",
+
+                        "LC_Sample218",
+
+                        "LC_Sample219",
+
+                        "LC_Sample104",
+
+                        "LC_Sample285",
+
+                        "LC_Sample366",
+
+                        "LC_Sample472",
+
+                        "LC_Sample142",
+
+                        "LC_Sample327",
+
+                        "LC_Sample21",
+
+                        "LC_Sample466",
+
+                        "LC_Sample72",
+
+                        "LC_Sample416",
+
+                        "LC_Sample318",
+
+                        "LC_Sample75",
+
+                        "LC_Sample212",
+
+                        "LC_Sample337",
+
+                        "LC_Sample397",
+
+                        "LC_Sample226",
+
+                        "LC_Sample150",
+
+                        "LC_Sample443",
+
+                        "LC_Sample76",
+
+                        "LC_Sample399",
+
+                        "LC_Sample425",
+
+                        "LC_Sample488",
+
+                        "LC_Sample190",
+
+                        "LC_Sample447",
+
+                        "LC_Sample309",
+
+                        "LC_Sample439",
+
+                        "LC_Sample233",
+
+                        "LC_Sample30",
+
+                        "LC_Sample120",
+
+                        "LC_Sample31",
+
+                        "LC_Sample184",
+
+                        "LC_Sample339",
+
+                        "LC_Sample95",
+
+                        "LC_Sample107",
+
+                        "LC_Sample79",
+
+                        "LC_Sample311",
+
+                        "LC_Sample312",
+
+                        "LC_Sample323",
+
+                        "LC_Sample456",
+
+                        "LC_Sample371",
+
+                        "LC_Sample12",
+
+                        "LC_Sample203",
+
+                        "LC_Sample44",
+
+                        "LC_Sample294",
+
+                        "LC_Sample326",
+
+                        "LC_Sample458",
+
+                        "LC_Sample248",
+
+                        "LC_Sample98",
+
+                        "LC_Sample434",
+
+                        "LC_Sample490",
+
+                        "LC_Sample186",
+
+                        "LC_Sample406",
+
+                        "LC_Sample41",
+
+                        "LC_Sample269",
+
+                        "LC_Sample11",
+
+                        "LC_Sample205",
+
+                        "LC_Sample484",
+
+                        "LC_Sample426",
+
+                        "LC_Sample231",
+
+                        "LC_Sample247",
+
+                        "LC_Sample201",
+
+                        "LC_Sample56",
+
+                        "LC_Sample123",
+
+                        "LC_Sample147",
+
+                        "LC_Sample347",
+
+                        "LC_Sample177"
+
+                    ],
+
+                    "directory": "./counts_dataset1.csv",
+
+                    "organization": "National Academy of Taiwan"
+
+                },
+
+                {
+
+                    "file_name": "counts_dataset2.csv",
+
+                    "file_size": 50,
+
+                    "patient_id": [
+
+                        "ICGC_0086",
+
+                        "ICGC_0100",
+
+                        "ICGC_0028",
+
+                        "ICGC_0023",
+
+                        "ICGC_0095",
+
+                        "ICGC_0047",
+
+                        "ICGC_0068",
+
+                        "ICGC_0026",
+
+                        "ICGC_0077",
+
+                        "ICGC_0071",
+
+                        "ICGC_0090",
+
+                        "ICGC_0076",
+
+                        "ICGC_0083",
+
+                        "ICGC_0061",
+
+                        "ICGC_0088",
+
+                        "ICGC_0038",
+
+                        "ICGC_0025",
+
+                        "ICGC_0058",
+
+                        "ICGC_0085",
+
+                        "ICGC_0066",
+
+                        "ICGC_0074",
+
+                        "ICGC_0008",
+
+                        "ICGC_0018",
+
+                        "ICGC_0007",
+
+                        "ICGC_0049",
+
+                        "ICGC_0034",
+
+                        "ICGC_0048",
+
+                        "ICGC_0050",
+
+                        "ICGC_0098",
+
+                        "ICGC_0033",
+
+                        "ICGC_0093",
+
+                        "ICGC_0079",
+
+                        "ICGC_0002",
+
+                        "ICGC_0001",
+
+                        "ICGC_0046",
+
+                        "ICGC_0089",
+
+                        "ICGC_0078",
+
+                        "ICGC_0072",
+
+                        "ICGC_0022",
+
+                        "ICGC_0091",
+
+                        "ICGC_0067",
+
+                        "ICGC_0006",
+
+                        "ICGC_0032",
+
+                        "ICGC_0020",
+
+                        "ICGC_0030",
+
+                        "ICGC_0064",
+
+                        "ICGC_0044",
+
+                        "ICGC_0081",
+
+                        "ICGC_0012",
+
+                        "ICGC_0037",
+
+                        "ICGC_0056",
+
+                        "ICGC_0031",
+
+                        "ICGC_0092",
+
+                        "ICGC_0042",
+
+                        "ICGC_0011",
+
+                        "ICGC_0059",
+
+                        "ICGC_0073",
+
+                        "ICGC_0084",
+
+                        "ICGC_0003",
+
+                        "ICGC_0024",
+
+                        "ICGC_0080"
+
+                    ],
+
+                    "sample_id": [
+
+                        "LC_Sample390",
+
+                        "LC_Sample391",
+
+                        "LC_Sample105",
+
+                        "LC_Sample256",
+
+                        "LC_Sample221",
+
+                        "LC_Sample56",
+
+                        "LC_Sample160",
+
+                        "LC_Sample68",
+
+                        "LC_Sample171",
+
+                        "LC_Sample488",
+
+                        "LC_Sample383",
+
+                        "LC_Sample211",
+
+                        "LC_Sample111",
+
+                        "LC_Sample231",
+
+                        "LC_Sample59",
+
+                        "LC_Sample300",
+
+                        "LC_Sample26",
+
+                        "LC_Sample102",
+
+                        "LC_Sample114",
+
+                        "LC_Sample425",
+
+                        "LC_Sample11",
+
+                        "LC_Sample455",
+
+                        "LC_Sample472",
+
+                        "LC_Sample307",
+
+                        "LC_Sample479",
+
+                        "LC_Sample28",
+
+                        "LC_Sample213",
+
+                        "LC_Sample112",
+
+                        "LC_Sample78",
+
+                        "LC_Sample255",
+
+                        "LC_Sample295",
+
+                        "LC_Sample50",
+
+                        "LC_Sample360",
+
+                        "LC_Sample370",
+
+                        "LC_Sample126",
+
+                        "LC_Sample135",
+
+                        "LC_Sample232",
+
+                        "LC_Sample347",
+
+                        "LC_Sample467",
+
+                        "LC_Sample30",
+
+                        "LC_Sample283",
+
+                        "LC_Sample124",
+
+                        "LC_Sample93",
+
+                        "LC_Sample372",
+
+                        "LC_Sample179",
+
+                        "LC_Sample138",
+
+                        "LC_Sample203",
+
+                        "LC_Sample315",
+
+                        "LC_Sample404",
+
+                        "LC_Sample289",
+
+                        "LC_Sample327",
+
+                        "LC_Sample296",
+
+                        "LC_Sample486",
+
+                        "LC_Sample230",
+
+                        "LC_Sample92",
+
+                        "LC_Sample470",
+
+                        "LC_Sample448",
+
+                        "LC_Sample260",
+
+                        "LC_Sample272",
+
+                        "LC_Sample120",
+
+                        "LC_Sample428",
+
+                        "LC_Sample323",
+
+                        "LC_Sample191",
+
+                        "LC_Sample279",
+
+                        "LC_Sample476",
+
+                        "LC_Sample209",
+
+                        "LC_Sample477",
+
+                        "LC_Sample207",
+
+                        "LC_Sample143",
+
+                        "LC_Sample121",
+
+                        "LC_Sample430",
+
+                        "LC_Sample366",
+
+                        "LC_Sample369",
+
+                        "LC_Sample374",
+
+                        "LC_Sample418",
+
+                        "LC_Sample322",
+
+                        "LC_Sample452",
+
+                        "LC_Sample12",
+
+                        "LC_Sample344",
+
+                        "LC_Sample446",
+
+                        "LC_Sample259",
+
+                        "LC_Sample468",
+
+                        "LC_Sample278",
+
+                        "LC_Sample228",
+
+                        "LC_Sample419",
+
+                        "LC_Sample445",
+
+                        "LC_Sample220",
+
+                        "LC_Sample18",
+
+                        "LC_Sample130",
+
+                        "LC_Sample204",
+
+                        "LC_Sample206",
+
+                        "LC_Sample7",
+
+                        "LC_Sample174",
+
+                        "LC_Sample265",
+
+                        "LC_Sample101",
+
+                        "LC_Sample113",
+
+                        "LC_Sample48",
+
+                        "LC_Sample466",
+
+                        "LC_Sample461",
+
+                        "LC_Sample459"
+
+                    ],
+
+                    "directory": "./counts_dataset2.csv",
+
+                    "organization": "National Academy of Taiwan"
+
+                }
+
+            ]
+
+        }
+
+    }
+
+}
