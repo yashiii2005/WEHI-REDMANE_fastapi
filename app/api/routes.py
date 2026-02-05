@@ -32,7 +32,7 @@ from app.schemas.schemas import (
 DB_NAME = "readmedatabase"
 DB_USER = "postgres"
 DB_PASSWORD = "password"
-DB_HOST = "localhost"
+DB_HOST = "db"
 DB_PORT = "5432"
 
 router = APIRouter()
